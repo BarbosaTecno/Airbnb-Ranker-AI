@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ranker_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ranker
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: ranker_api
+    depends_on:
+      - mysql
+    environment:
+      DATABASE_URL: mysql://user:password@mysql:3306/ranker
+      JWT_SECRET: ranker_master_secret_2024
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: gpt-4-turbo-preview
+      MAX_MESSAGES_PER_DAY: 50
+      CORS_ORIGIN: http://localhost:5173
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: ranker_web
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000/api
+    depends_on:
+      - api
+
+volumes:
+  mysql_data:
